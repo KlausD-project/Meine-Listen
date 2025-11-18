@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meine Listen - Mobile</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left"><span id="dateTime"></span></div>
+  <h1>Meine Listen</h1>
+  <button id="themeToggle" class="theme-toggle" aria-label="Dark Mode umschalten">🌗</button>
+</header>
+
+<nav>
+  <button id="todoBtn" class="active">📝 To-Do</button>
+  <button id="shopBtn">🛒 Einkauf</button>
+  <button id="birthdayBtn">🎂 Geburtstag</button>
+  <button id="eventsBtn">📅 Events</button>
+</nav>
+
+<div class="container">
+
+  <!-- To-Do -->
+  <div id="todoSection">
+    <h2>To-Do</h2>
+    <div class="controls">
+      <button id="todoClear">🗑️ Alles löschen</button>
+      <button id="todoShare">📤 Teilen</button>
+    </div>
+    <div class="input-group">
+      <input id="todoInput" type="text" placeholder="Neue Aufgabe hinzufügen...">
+      <button id="todoAdd">➕</button>
+    </div>
+    <ul id="todoList"></ul>
+  </div>
+
+  <!-- Einkauf -->
+  <div id="shopSection" style="display:none;">
+    <h2>Einkauf</h2>
+    <div class="controls">
+      <button id="shopClear">🗑️ Alles löschen</button>
+      <button id="shopShare">📤 Teilen</button>
+    </div>
+    <div class="input-group">
+      <input id="shopInput" type="text" placeholder="Neuen Artikel hinzufügen...">
+      <button id="shopAdd">➕</button>
+    </div>
+    <ul id="shopList"></ul>
+  </div>
+
+  <!-- Geburtstag -->
+  <div id="birthdaySection" style="display:none;">
+    <h2>Geburtstag</h2>
+    <div class="controls">
+      <button id="birthdayClear">🗑️ Alles löschen</button>
+      <button id="birthdayShare">📤 Teilen</button>
+    </div>
+    <div class="input-group">
+      <input id="birthdayName" type="text" placeholder="Name...">
+      <input id="birthdayDate" type="date">
+      <button id="birthdayAdd">➕</button>
+    </div>
+    <ul id="birthdayList"></ul>
+  </div>
+
+  <!-- Events -->
+  <div id="eventsSection" style="display:none;">
+    <h2>Events</h2>
+    <div class="controls">
+      <button id="eventsClear">🗑️ Alles löschen</button>
+      <button id="eventsShare">📤 Teilen</button>
+    </div>
+    <div class="input-group">
+      <input id="eventsInput" type="text" placeholder="Neues Event hinzufügen...">
+      <button id="eventsAdd">➕</button>
+    </div>
+    <ul id="eventsList"></ul>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
