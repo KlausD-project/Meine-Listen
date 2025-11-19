@@ -1,4 +1,4 @@
-/* app.js - Mobile Lists mit iOS-kompatiblem Geburtstags-Input */
+/* app.js - Mobile Lists mit iOS-kompatiblem Geburtstags-Input und sicherem Alter */
 
 /* Sections und Storage Keys */
 const sections = ["todo", "shop", "birthday", "events"];
@@ -131,18 +131,25 @@ function addBirthday() {
   renderList("birthday");
 }
 
-// Robuste Age Calculation (TT.MM.JJJJ)
+// Robustes Alter berechnen für iOS Safari
 function calcAge(birthDateStr) {
+  // erwartet "TT.MM.JJJJ"
   const parts = birthDateStr.split(".");
-  if(parts.length !== 3) return "";
+  if (parts.length !== 3) return "";
   const day = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10) - 1;
+  const month = parseInt(parts[1], 10);
   const year = parseInt(parts[2], 10);
-  if(isNaN(day) || isNaN(month) || isNaN(year)) return "";
-  const b = new Date(year, month, day);
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return "";
+
+  // Datum mit UTC erstellen, um Safari Zeitzonenprobleme zu vermeiden
+  const birthDate = new Date(Date.UTC(year, month - 1, day));
   const today = new Date();
-  let age = today.getFullYear() - b.getFullYear();
-  if(today.getMonth() < month || (today.getMonth() === month && today.getDate() < day)) age--;
+
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const m = today.getUTCMonth() - birthDate.getUTCMonth();
+  const d = today.getUTCDate() - birthDate.getUTCDate();
+  if (m < 0 || (m === 0 && d < 0)) age--;
+
   return age;
 }
 
