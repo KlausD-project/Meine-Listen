@@ -1,117 +1,86 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-
-<title>Meine Listen - Mobile</title>
-
-<!-- CSS laden -->
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Meine Listen - Mobile</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header>
+    <div class="header-left">
+      <span id="dateTime"></span>
+    </div>
+    <h1>Meine Listen</h1>
+    <button id="themeToggle" class="theme-toggle" aria-label="Dark Mode umschalten">🌗</button>
+  </header>
 
-<!-- ░░░ HEADER MIT DATUM + UHRZEIT + DARKMODE ░░░ -->
-<header>
-  <div class="header-left">
-    <div id="date"></div>     <!-- Datum -->
-    <div id="time"></div>     <!-- Uhrzeit -->
-  </div>
+  <nav class="nav-row" aria-label="Hauptnavigation">
+    <button id="todoBtn" class="active">📝 To-Do</button>
+    <button id="shopBtn">🛒 Einkauf</button>
+    <button id="birthdayBtn">🎂 Geburtstag</button>
+    <button id="eventsBtn">📅 Events</button>
+  </nav>
 
-  <h1>Meine Listen</h1>
+  <main class="container">
+    <!-- To-Do -->
+    <section id="todoSection" class="section" aria-labelledby="todoBtn">
+      <div class="controls">
+        <button id="todoClear" class="control-btn">Alles löschen</button>
+        <span class="section-name">To-Do</span>
+        <button id="todoShare" class="control-btn">Teilen</button>
+      </div>
+      <div class="input-group">
+        <input id="todoInput" type="text" placeholder="Neue Aufgabe hinzufügen…" aria-label="Neue Aufgabe">
+        <button id="todoAdd" aria-label="Aufgabe hinzufügen">➕</button>
+      </div>
+      <ul id="todoList" class="list" aria-live="polite"></ul>
+    </section>
 
-  <button id="themeToggle" class="theme-toggle" aria-label="Dark Mode umschalten">🌗</button>
-</header>
+    <!-- Einkauf -->
+    <section id="shopSection" class="section" style="display:none;" aria-labelledby="shopBtn">
+      <div class="controls">
+        <button id="shopClear" class="control-btn">Alles löschen</button>
+        <span class="section-name">Einkauf</span>
+        <button id="shopShare" class="control-btn">Teilen</button>
+      </div>
+      <div class="input-group">
+        <input id="shopInput" type="text" placeholder="Neuen Artikel hinzufügen…" aria-label="Neuer Artikel">
+        <button id="shopAdd" aria-label="Artikel hinzufügen">➕</button>
+      </div>
+      <ul id="shopList" class="list" aria-live="polite"></ul>
+    </section>
 
-<!-- ░░░ NAVIGATION (Tabs) ░░░ -->
-<nav>
-  <button id="todoBtn" class="active">📝<span>To-Do</span></button>
-  <button id="shopBtn">🛒<span>Einkauf</span></button>
-  <button id="birthdayBtn">🎂<span>Geburtstag</span></button>
-  <button id="eventsBtn">📅<span>Events</span></button>
-</nav>
+    <!-- Geburtstag -->
+    <section id="birthdaySection" class="section" style="display:none;" aria-labelledby="birthdayBtn">
+      <div class="controls">
+        <button id="birthdayClear" class="control-btn">Alles löschen</button>
+        <span class="section-name">Geburtstag</span>
+        <button id="birthdayShare" class="control-btn">Teilen</button>
+      </div>
+      <div class="input-group">
+        <input id="birthdayName" type="text" placeholder="Name…" aria-label="Name">
+        <input id="birthdayDate" type="text" placeholder="Datum" aria-label="Geburtsdatum">
+        <button id="birthdayAdd" aria-label="Geburtstag hinzufügen">➕</button>
+      </div>
+      <ul id="birthdayList" class="list" aria-live="polite"></ul>
+    </section>
 
-<!-- ░░░ TO-DO LISTE ░░░ -->
-<section id="todoSection" class="active">
+    <!-- Events -->
+    <section id="eventsSection" class="section" style="display:none;" aria-labelledby="eventsBtn">
+      <div class="controls">
+        <button id="eventsClear" class="control-btn">Alles löschen</button>
+        <span class="section-name">Events</span>
+        <button id="eventsShare" class="control-btn">Teilen</button>
+      </div>
+      <div class="input-group">
+        <input id="eventsInput" type="text" placeholder="Neues Event hinzufügen…" aria-label="Neues Event">
+        <button id="eventsAdd" aria-label="Event hinzufügen">➕</button>
+      </div>
+      <ul id="eventsList" class="list" aria-live="polite"></ul>
+    </section>
+  </main>
 
-  <h2>To-Do Liste</h2>
-
-  <div class="input-row">
-    <input id="todoInput" type="text" placeholder="Neue Aufgabe...">
-    <button id="addTodo">+</button>
-  </div>
-
-  <ul id="todoList" class="draggable-list"></ul>
-
-  <div class="button-row">
-    <button id="clearTodo" class="danger">Alles löschen</button>
-    <button id="shareTodo" class="secondary">Teilen</button>
-  </div>
-
-</section>
-
-<!-- ░░░ EINKAUFSLISTE ░░░ -->
-<section id="shopSection">
-
-  <h2>Einkauf</h2>
-
-  <div class="input-row">
-    <input id="shopInput" type="text" placeholder="Produkt hinzufügen...">
-    <button id="addShop">+</button>
-  </div>
-
-  <ul id="shopList"></ul>
-
-  <div class="button-row">
-    <button id="clearShop" class="danger">Alles löschen</button>
-    <button id="shareShop" class="secondary">Teilen</button>
-  </div>
-
-</section>
-
-<!-- ░░░ GEBURTSTAGE ░░░ -->
-<section id="birthdaySection">
-
-  <h2>Geburtstage</h2>
-
-  <div class="input-row">
-    <input id="bName" type="text" placeholder="Name">
-    <input id="bDate" type="date">
-    <button id="addBirthday">+</button>
-  </div>
-
-  <ul id="birthdayList" class="draggable-list"></ul>
-
-  <div class="button-row">
-    <button id="clearBirthday" class="danger">Alles löschen</button>
-    <button id="shareBirthday" class="secondary">Teilen</button>
-  </div>
-
-</section>
-
-<!-- ░░░ EVENTS ░░░ -->
-<section id="eventsSection">
-
-  <h2>Events</h2>
-
-  <div class="input-row">
-    <input id="eventName" type="text" placeholder="Event-Name...">
-    <input id="eventDate" type="date">
-    <button id="addEvent">+</button>
-  </div>
-
-  <ul id="eventList"></ul>
-
-  <div class="button-row">
-    <button id="clearEvents" class="danger">Alles löschen</button>
-    <button id="shareEvents" class="secondary">Teilen</button>
-  </div>
-
-</section>
-
-
-<!-- ░░░ JAVASCRIPT laden ░░░ -->
-<script src="app.js"></script>
-
+  <script src="app.js"></script>
 </body>
 </html>

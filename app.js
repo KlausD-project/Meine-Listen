@@ -1,194 +1,147 @@
-/* -----------------------------------------------------
-   1. DATUM + UHRZEIT mit MonatsZAHL
------------------------------------------------------ */
-function updateDateTime() {
-    const now = new Date();
+/* Sections and storage keys */
+const sections = ["todo", "shop", "birthday", "events"];
+const STORAGE = { todo:"todo_mobile_v1", shop:"shop_mobile_v1", birthday:"birthday_mobile_v1", events:"events_mobile_v1" };
 
-    let day = now.getDate();
-    let month = now.getMonth() + 1;  // Monat als Zahl
-    let year = now.getFullYear();
-
-    document.getElementById("date").textContent =
-        `${day}.${month}.${year}`;
-
-    const time = now.toLocaleTimeString("de-DE", {
-        hour: "2-digit",
-        minute: "2-digit"
-    });
-
-    document.getElementById("time").textContent = time;
-}
-
-setInterval(updateDateTime, 1000);
-updateDateTime();
-
-/* -----------------------------------------------------
-   2. TAB Navigation
------------------------------------------------------ */
-const sections = {
-  todoBtn: "todoSection",
-  shopBtn: "shopSection",
-  birthdayBtn: "birthdaySection",
-  eventsBtn: "eventsSection"
-};
-
-for (let btn in sections) {
-  document.getElementById(btn).addEventListener("click", () => {
-    document.querySelector("nav .active").classList.remove("active");
-    document.getElementById(btn).classList.add("active");
-
-    document.querySelector("section.active").classList.remove("active");
-    document.getElementById(sections[btn]).classList.add("active");
+/* Navigation */
+sections.forEach(sec=>{
+  const btn=document.getElementById(sec+"Btn");
+  if(!btn)return;
+  btn.addEventListener("click",()=>switchSection(sec));
+});
+function switchSection(type){
+  sections.forEach(sec=>{
+    const secEl=document.getElementById(sec+"Section");
+    const btnEl=document.getElementById(sec+"Btn");
+    if(secEl) secEl.style.display=(sec===type)?"block":"none";
+    if(btnEl) btnEl.classList.toggle("active", sec===type);
   });
 }
 
-/* -----------------------------------------------------
-   3. DARK MODE
------------------------------------------------------ */
-document.getElementById("themeToggle").onclick = () => {
-    document.body.classList.toggle("dark");
-};
+/* Theme toggle */
+const themeToggle=document.getElementById("themeToggle");
+if(themeToggle){
+  themeToggle.addEventListener("click",()=>{
+    const isDark=document.documentElement.getAttribute("data-theme")==="dark";
+    if(isDark){ document.documentElement.removeAttribute("data-theme"); localStorage.removeItem("theme"); }
+    else{ document.documentElement.setAttribute("data-theme","dark"); localStorage.setItem("theme","dark"); }
+  });
+  if(localStorage.getItem("theme")==="dark") document.documentElement.setAttribute("data-theme","dark");
+}
 
-/* -----------------------------------------------------
-   4. DRAG & DROP Funktion für To-Do + Geburtstage
------------------------------------------------------ */
-function enableDrag(containerId) {
-    const list = document.getElementById(containerId);
+/* Date & Time */
+function updateDateTime(){
+  const now=new Date();
+  const dd=String(now.getDate()).padStart(2,"0");
+  const mm=String(now.getMonth()+1).padStart(2,"0");
+  const yyyy=now.getFullYear();
+  const time=now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  const node=document.getElementById("dateTime");
+  if(node) node.textContent=`${dd}.${mm}.${yyyy} ${time} Uhr`;
+}
+updateDateTime(); setInterval(updateDateTime,1000);
 
-    list.addEventListener("dragstart", e => {
-        if (e.target.tagName === "LI") {
-            e.target.classList.add("dragging");
-        }
-    });
+/* Storage */
+function loadItems(type){ try{ return JSON.parse(localStorage.getItem(STORAGE[type])||"[]"); }catch(e){return[];} }
+function saveItems(type,items){ localStorage.setItem(STORAGE[type],JSON.stringify(items)); }
 
-    list.addEventListener("dragend", e => {
-        if (e.target.tagName === "LI") {
-            e.target.classList.remove("dragging");
-            saveAll(); // Positionen speichern
-        }
-    });
+/* Generic add/delete/clear/share */
+function addItem(type){
+  const input=document.getElementById(type+"Input");
+  if(!input) return;
+  const text=input.value.trim();
+  if(!text) return;
+  const items=loadItems(type);
+  items.push({text,done:false,date:new Date().toLocaleDateString(),id:Date.now()});
+  saveItems(type,items); input.value=""; renderList(type);
+}
+function deleteItem(type,index){ if(!confirm("Wirklich löschen?")) return; const items=loadItems(type); if(index<0||index>=items.length) return; items.splice(index,1); saveItems(type,items); renderList(type); }
+function clearAll(type){ if(!confirm("Wirklich alle löschen?")) return; localStorage.removeItem(STORAGE[type]); renderList(type); }
+function shareList(type){
+  const items=loadItems(type); if(!items.length){ alert("Keine Einträge zum Teilen."); return; }
+  let text=""; items.forEach(i=>text+=`- ${i.text}\n`);
+  if(navigator.share){ navigator.share({title:`Meine ${type} Liste`, text}).catch(()=>{}); } else { prompt("Liste kopieren:",text); }
+}
 
-    list.addEventListener("dragover", e => {
+/* Birthday */
+const birthdayName=document.getElementById("birthdayName");
+const birthdayDate=document.getElementById("birthdayDate");
+function addBirthday(){
+  if(!birthdayName||!birthdayDate) return;
+  const name=birthdayName.value.trim();
+  const dateStr=birthdayDate.value.trim();
+  if(!name||!dateStr) return;
+  const items=loadItems("birthday");
+  items.push({text:name,birthDate:dateStr,done:false,date:new Date().toLocaleDateString(),id:Date.now()});
+  saveItems("birthday",items);
+  birthdayName.value=""; birthdayDate.value=""; renderList("birthday");
+}
+function calcAge(birthDateStr){ const b=new Date(birthDateStr); const today=new Date(); let age=today.getFullYear()-b.getFullYear(); const m=today.getMonth()-b.getMonth(); if(m<0||(m===0&&today.getDate()<b.getDate())) age--; return age; }
+
+/* Render lists */
+function renderList(type){
+  const list=document.getElementById(type+"List"); if(!list) return;
+  list.innerHTML=""; const items=loadItems(type);
+  items.forEach(item=>{
+    const li=document.createElement("li");
+    const draggable=(type==="todo"||type==="birthday"); if(draggable) li.setAttribute("draggable","true");
+    li.dataset.id=item.id; if(item.done) li.classList.add("completed");
+
+    const left=document.createElement("div"); left.style.display="flex"; left.style.alignItems="center"; left.style.gap="10px";
+    const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!item.done;
+    cb.addEventListener("change",()=>{ const arr=loadItems(type); const localIdx=arr.findIndex(i=>i.id===item.id); if(localIdx>=0){ arr[localIdx].done=!arr[localIdx].done; saveItems(type,arr); renderList(type); } });
+    const span=document.createElement("span"); span.className="text";
+    if(type==="birthday"&&item.birthDate){ span.textContent=`${item.text} — ${calcAge(item.birthDate)} Jahre`; }
+    else{ span.textContent=item.text; }
+    const meta=document.createElement("span"); meta.className="meta";
+    if(type==="birthday"&&item.birthDate){ meta.textContent=item.birthDate; } else { meta.textContent=item.date||""; }
+    const delBtn=document.createElement("button"); delBtn.textContent="✖"; delBtn.addEventListener("click",()=>{ const arr=loadItems(type); const localIdx=arr.findIndex(i=>i.id===item.id); deleteItem(type,localIdx); });
+
+    left.appendChild(cb); left.appendChild(span); left.appendChild(meta);
+    li.appendChild(left); li.appendChild(delBtn);
+    list.appendChild(li);
+
+    if(draggable){
+      li.addEventListener("dragstart",e=>{ e.dataTransfer.setData("text/plain",item.id); li.style.opacity="0.5"; });
+      li.addEventListener("dragend",e=>{ li.style.opacity="1"; });
+      li.addEventListener("dragover",e=>e.preventDefault());
+      li.addEventListener("drop",e=>{
         e.preventDefault();
-        const dragging = document.querySelector(".dragging");
-        const after = [...list.querySelectorAll("li:not(.dragging)")]
-            .find(li => e.clientY <= li.offsetTop + li.offsetHeight / 2);
-
-        if (after) list.insertBefore(dragging, after);
-        else list.appendChild(dragging);
-    });
-}
-
-enableDrag("todoList");
-enableDrag("birthdayList");
-
-/* -----------------------------------------------------
-   5. SPEICHERN & LADEN
------------------------------------------------------ */
-function saveAll() {
-    const saveList = (id) =>
-      [...document.getElementById(id).children].map(li => li.textContent);
-
-    localStorage.setItem("todos", JSON.stringify(saveList("todoList")));
-    localStorage.setItem("shops", JSON.stringify(saveList("shopList")));
-    localStorage.setItem("birthdays", JSON.stringify(saveList("birthdayList")));
-    localStorage.setItem("events", JSON.stringify(saveList("eventList")));
-}
-
-function loadAll() {
-    function loadList(id, items) {
-        const ul = document.getElementById(id);
-        ul.innerHTML = "";
-        items.forEach(text => {
-            const li = document.createElement("li");
-            li.textContent = text;
-            li.draggable = true;
-            ul.appendChild(li);
-        });
+        const draggedId=parseInt(e.dataTransfer.getData("text/plain"));
+        const targetId=item.id;
+        if(draggedId===targetId) return;
+        const arr=loadItems(type);
+        const from=arr.findIndex(i=>i.id===draggedId);
+        const to=arr.findIndex(i=>i.id===targetId);
+        if(from<0||to<0) return;
+        const [moved]=arr.splice(from,1); arr.splice(to,0,moved);
+        saveItems(type,arr); renderList(type);
+      });
     }
-
-    loadList("todoList", JSON.parse(localStorage.getItem("todos") || "[]"));
-    loadList("shopList", JSON.parse(localStorage.getItem("shops") || "[]"));
-    loadList("birthdayList", JSON.parse(localStorage.getItem("birthdays") || "[]"));
-    loadList("eventList", JSON.parse(localStorage.getItem("events") || "[]"));
+  });
 }
 
-loadAll();
+/* Setup UI */
+function setupUI(){
+  ["todo","shop","events"].forEach(type=>{
+    const addBtn=document.getElementById(type+"Add");
+    const input=document.getElementById(type+"Input");
+    const clearBtn=document.getElementById(type+"Clear");
+    const shareBtn=document.getElementById(type+"Share");
+    if(addBtn) addBtn.addEventListener("click",()=>addItem(type));
+    if(input) input.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addItem(type); }});
+    if(clearBtn) clearBtn.addEventListener("click",()=>clearAll(type));
+    if(shareBtn) shareBtn.addEventListener("click",()=>shareList(type));
+  });
 
-/* -----------------------------------------------------
-   6. EINTRÄGE HINZUFÜGEN
------------------------------------------------------ */
-function addItem(inputId, listId) {
-    const input = document.getElementById(inputId);
-    if (!input.value.trim()) return;
-
-    const li = document.createElement("li");
-    li.textContent = input.value;
-    li.draggable = true;
-
-    document.getElementById(listId).appendChild(li);
-    input.value = "";
-
-    saveAll();
+  const bAdd=document.getElementById("birthdayAdd");
+  const bClear=document.getElementById("birthdayClear");
+  const bShare=document.getElementById("birthdayShare");
+  if(bAdd) bAdd.addEventListener("click",()=>addBirthday());
+  if(bClear) bClear.addEventListener("click",()=>clearAll("birthday"));
+  if(bShare) bShare.addEventListener("click",()=>shareList("birthday"));
+  if(birthdayName) birthdayName.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addBirthday(); }});
+  if(birthdayDate) birthdayDate.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addBirthday(); }});
 }
 
-document.getElementById("addTodo").onclick = () => addItem("todoInput", "todoList");
-document.getElementById("addShop").onclick = () => addItem("shopInput", "shopList");
-document.getElementById("addEvent").onclick = () => addItem("eventName", "eventList");
-
-/* -----------------------------------------------------
-   7. GEBURTSTAGE MIT ALTER
------------------------------------------------------ */
-document.getElementById("addBirthday").onclick = () => {
-    const name = document.getElementById("bName").value;
-    const date = document.getElementById("bDate").value;
-
-    if (!name || !date) return;
-
-    const age = new Date().getFullYear() - new Date(date).getFullYear();
-
-    const li = document.createElement("li");
-    li.textContent = `${name} – ${date} – ${age} Jahre`;
-    li.draggable = true;
-
-    document.getElementById("birthdayList").appendChild(li);
-
-    document.getElementById("bName").value = "";
-    document.getElementById("bDate").value = "";
-
-    saveAll();
-};
-
-/* -----------------------------------------------------
-   8. ALLES LÖSCHEN
------------------------------------------------------ */
-document.getElementById("clearTodo").onclick = () => {
-    document.getElementById("todoList").innerHTML = "";
-    saveAll();
-};
-
-/* (für alle anderen Listen genauso) */
-["clearShop", "clearBirthday", "clearEvents"].forEach(id => {
-    document.getElementById(id).onclick = () => {
-        const target = id.replace("clear", "").toLowerCase() + "List";
-        document.getElementById(target).innerHTML = "";
-        saveAll();
-    };
-});
-
-/* -----------------------------------------------------
-   9. TEILEN
------------------------------------------------------ */
-function shareList(id) {
-    const items = [...document.getElementById(id).children].map(li => "• " + li.textContent).join("\n");
-
-    navigator.share({
-        title: "Meine Liste",
-        text: items
-    });
-}
-
-document.getElementById("shareTodo").onclick = () => shareList("todoList");
-document.getElementById("shareShop").onclick = () => shareList("shopList");
-document.getElementById("shareBirthday").onclick = () => shareList("birthdayList");
-document.getElementById("shareEvents").onclick = () => shareList("eventList");
+/* Initial render */
+setupUI(); sections.forEach(s=>renderList(s));
