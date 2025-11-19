@@ -1,159 +1,194 @@
-const sections=["todo","shop","birthday","events"];
-const STORAGE={todo:"todoItems_mobile",shop:"shopItems_mobile",birthday:"birthdayItems_mobile",events:"eventItems_mobile"};
+/* -----------------------------------------------------
+   1. DATUM + UHRZEIT mit MonatsZAHL
+----------------------------------------------------- */
+function updateDateTime() {
+    const now = new Date();
 
-// Navigation
-sections.forEach(sec=>{
-  document.getElementById(sec+"Btn").addEventListener("click",()=>switchSection(sec));
-});
-function switchSection(type){
-  sections.forEach(sec=>{
-    document.getElementById(sec+"Section").style.display=(sec===type)?"block":"none";
-    document.getElementById(sec+"Btn").classList.toggle("active", sec===type);
+    let day = now.getDate();
+    let month = now.getMonth() + 1;  // Monat als Zahl
+    let year = now.getFullYear();
+
+    document.getElementById("date").textContent =
+        `${day}.${month}.${year}`;
+
+    const time = now.toLocaleTimeString("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    document.getElementById("time").textContent = time;
+}
+
+setInterval(updateDateTime, 1000);
+updateDateTime();
+
+/* -----------------------------------------------------
+   2. TAB Navigation
+----------------------------------------------------- */
+const sections = {
+  todoBtn: "todoSection",
+  shopBtn: "shopSection",
+  birthdayBtn: "birthdaySection",
+  eventsBtn: "eventsSection"
+};
+
+for (let btn in sections) {
+  document.getElementById(btn).addEventListener("click", () => {
+    document.querySelector("nav .active").classList.remove("active");
+    document.getElementById(btn).classList.add("active");
+
+    document.querySelector("section.active").classList.remove("active");
+    document.getElementById(sections[btn]).classList.add("active");
   });
 }
 
-// Theme toggle
-const themeToggle=document.getElementById("themeToggle");
-themeToggle.addEventListener("click",()=>{
-  const isDark=document.documentElement.getAttribute("data-theme")==="dark";
-  if(isDark){document.documentElement.removeAttribute("data-theme");localStorage.removeItem("theme");}
-  else{document.documentElement.setAttribute("data-theme","dark");localStorage.setItem("theme","dark");}
-});
-if(localStorage.getItem("theme")==="dark"){document.documentElement.setAttribute("data-theme","dark");}
+/* -----------------------------------------------------
+   3. DARK MODE
+----------------------------------------------------- */
+document.getElementById("themeToggle").onclick = () => {
+    document.body.classList.toggle("dark");
+};
 
-// Datum & Uhrzeit
-function updateDateTime(){
-  const now=new Date();
-  const options={day:"2-digit",month:"long",year:"numeric"};
-  const dateStr=now.toLocaleDateString("de-DE",options);
-  const timeStr=now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
-  document.getElementById("dateTime").textContent=`${dateStr} — ${timeStr} Uhr`;
-}
-updateDateTime(); setInterval(updateDateTime,1000);
+/* -----------------------------------------------------
+   4. DRAG & DROP Funktion für To-Do + Geburtstage
+----------------------------------------------------- */
+function enableDrag(containerId) {
+    const list = document.getElementById(containerId);
 
-// CRUD & Sharing
-sections.forEach(sec=>{
-  const input=document.getElementById(sec+"Input") || document.getElementById(sec+"Name");
-  const addBtn=document.getElementById(sec+"Add");
-  const clearBtn=document.getElementById(sec+"Clear");
-  const shareBtn=document.getElementById(sec+"Share");
-  if(addBtn) addBtn.addEventListener("click",()=> sec==="birthday"? addBirthday(): addItem(sec));
-  if(clearBtn) clearBtn.addEventListener("click",()=>clearAll(sec));
-  if(shareBtn) shareBtn.addEventListener("click",()=>shareList(sec));
-  if(input) input.addEventListener("keydown",e=>{if(e.key==="Enter") sec==="birthday"? addBirthday(): addItem(sec);});
-});
+    list.addEventListener("dragstart", e => {
+        if (e.target.tagName === "LI") {
+            e.target.classList.add("dragging");
+        }
+    });
 
-function loadItems(type){return JSON.parse(localStorage.getItem(STORAGE[type])||"[]");}
-function saveItems(type,items){localStorage.setItem(STORAGE[type],JSON.stringify(items));}
+    list.addEventListener("dragend", e => {
+        if (e.target.tagName === "LI") {
+            e.target.classList.remove("dragging");
+            saveAll(); // Positionen speichern
+        }
+    });
 
-function addItem(type){
-  const input=document.getElementById(type+"Input");
-  const text=input.value.trim(); if(!text) return;
-  const item={text,done:false,date:new Date().toLocaleDateString(),id:Date.now()};
-  const items=loadItems(type); items.push(item); saveItems(type,items); input.value="";
-  renderList(type);
-}
-
-function deleteItem(type,index){
-  if(!confirm("Wirklich löschen?")) return;
-  const items=loadItems(type);
-  items.splice(index,1); saveItems(type,items);
-  renderList(type);
-}
-
-function clearAll(type){
-  if(!confirm("Wirklich alle löschen?")) return;
-  localStorage.removeItem(STORAGE[type]);
-  renderList(type);
-}
-
-function shareList(type){
-  const items=loadItems(type);
-  if(items.length===0){alert("Keine Einträge zum Teilen."); return;}
-  let text="";
-  if(type==="birthday"){
-    items.forEach(i=>text+=`${i.text} — ${calculateAge(i.birthDate)} Jahre\n`);
-  }else{
-    items.forEach(i=>text+=`- ${i.text}\n`);
-  }
-  if(navigator.share){navigator.share({title:`Meine ${type} Liste`,text});}
-  else{prompt("Liste kopieren:",text);}
-}
-
-// Geburtstagsliste
-const birthdayNameInput=document.getElementById("birthdayName");
-const birthdayDateInput=document.getElementById("birthdayDate");
-function addBirthday(){
-  const name=birthdayNameInput.value.trim();
-  const dateStr=birthdayDateInput.value;
-  if(!name || !dateStr) return;
-  const item={text:name,birthDate:dateStr,done:false,date:new Date().toLocaleDateString(),id:Date.now()};
-  const items=loadItems("birthday"); items.push(item); saveItems("birthday",items);
-  birthdayNameInput.value=""; birthdayDateInput.value="";
-  renderList("birthday");
-}
-function calculateAge(birthDateStr){
-  const birthDate=new Date(birthDateStr);
-  const today=new Date();
-  let age=today.getFullYear()-birthDate.getFullYear();
-  const m=today.getMonth()-birthDate.getMonth();
-  if(m<0||(m===0 && today.getDate()<birthDate.getDate())) age--;
-  return age;
-}
-
-// Render List & Drag & Drop To-Do + Birthday
-function renderList(type){
-  const list=document.getElementById(type+"List");
-  if(!list) return;
-  list.innerHTML="";
-  const items=loadItems(type);
-  items.forEach(item=>{
-    const li=document.createElement("li");
-    li.setAttribute("draggable",(type==="todo"||type==="birthday"));
-    li.dataset.id=item.id;
-    if(item.done) li.classList.add("completed");
-
-    const left=document.createElement("div");
-    left.style.display="flex"; left.style.alignItems="center"; left.style.gap="12px";
-
-    const checkbox=document.createElement("input");
-    checkbox.type="checkbox"; checkbox.checked=item.done;
-    checkbox.addEventListener("change",()=>{item.done=!item.done; saveItems(type,items); renderList(type);});
-
-    const span=document.createElement("span"); span.className="text";
-    if(type==="birthday" && item.birthDate) span.textContent=`${item.text} — ${calculateAge(item.birthDate)} Jahre`;
-    else span.textContent=item.text;
-
-    const meta=document.createElement("span"); meta.className="meta"; meta.textContent=item.date;
-
-    const del=document.createElement("button"); del.textContent="✖";
-    del.addEventListener("click",()=>deleteItem(type,items.findIndex(i=>i.id===item.id)));
-
-    left.appendChild(checkbox); left.appendChild(span); left.appendChild(meta);
-    li.appendChild(left); li.appendChild(del);
-    list.appendChild(li);
-
-    // Drag & Drop for To-Do & Birthday
-    if(type==="todo"||type==="birthday"){
-      li.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",item.id); li.style.opacity="0.5";});
-      li.addEventListener("dragend",e=>{li.style.opacity="1";});
-      li.addEventListener("dragover",e=>e.preventDefault());
-      li.addEventListener("drop",e=>{
+    list.addEventListener("dragover", e => {
         e.preventDefault();
-        const draggedId=parseInt(e.dataTransfer.getData("text/plain"));
-        const targetId=item.id;
-        if(draggedId===targetId) return;
-        const items=loadItems(type);
-        const draggedIndex=items.findIndex(i=>i.id===draggedId);
-        const targetIndex=items.findIndex(i=>i.id===targetId);
-        const [draggedItem]=items.splice(draggedIndex,1);
-        items.splice(targetIndex,0,draggedItem);
-        saveItems(type,items);
-        renderList(type);
-      });
-    }
-  });
+        const dragging = document.querySelector(".dragging");
+        const after = [...list.querySelectorAll("li:not(.dragging)")]
+            .find(li => e.clientY <= li.offsetTop + li.offsetHeight / 2);
+
+        if (after) list.insertBefore(dragging, after);
+        else list.appendChild(dragging);
+    });
 }
 
-// Initial Render
-sections.forEach(sec=>renderList(sec));
+enableDrag("todoList");
+enableDrag("birthdayList");
+
+/* -----------------------------------------------------
+   5. SPEICHERN & LADEN
+----------------------------------------------------- */
+function saveAll() {
+    const saveList = (id) =>
+      [...document.getElementById(id).children].map(li => li.textContent);
+
+    localStorage.setItem("todos", JSON.stringify(saveList("todoList")));
+    localStorage.setItem("shops", JSON.stringify(saveList("shopList")));
+    localStorage.setItem("birthdays", JSON.stringify(saveList("birthdayList")));
+    localStorage.setItem("events", JSON.stringify(saveList("eventList")));
+}
+
+function loadAll() {
+    function loadList(id, items) {
+        const ul = document.getElementById(id);
+        ul.innerHTML = "";
+        items.forEach(text => {
+            const li = document.createElement("li");
+            li.textContent = text;
+            li.draggable = true;
+            ul.appendChild(li);
+        });
+    }
+
+    loadList("todoList", JSON.parse(localStorage.getItem("todos") || "[]"));
+    loadList("shopList", JSON.parse(localStorage.getItem("shops") || "[]"));
+    loadList("birthdayList", JSON.parse(localStorage.getItem("birthdays") || "[]"));
+    loadList("eventList", JSON.parse(localStorage.getItem("events") || "[]"));
+}
+
+loadAll();
+
+/* -----------------------------------------------------
+   6. EINTRÄGE HINZUFÜGEN
+----------------------------------------------------- */
+function addItem(inputId, listId) {
+    const input = document.getElementById(inputId);
+    if (!input.value.trim()) return;
+
+    const li = document.createElement("li");
+    li.textContent = input.value;
+    li.draggable = true;
+
+    document.getElementById(listId).appendChild(li);
+    input.value = "";
+
+    saveAll();
+}
+
+document.getElementById("addTodo").onclick = () => addItem("todoInput", "todoList");
+document.getElementById("addShop").onclick = () => addItem("shopInput", "shopList");
+document.getElementById("addEvent").onclick = () => addItem("eventName", "eventList");
+
+/* -----------------------------------------------------
+   7. GEBURTSTAGE MIT ALTER
+----------------------------------------------------- */
+document.getElementById("addBirthday").onclick = () => {
+    const name = document.getElementById("bName").value;
+    const date = document.getElementById("bDate").value;
+
+    if (!name || !date) return;
+
+    const age = new Date().getFullYear() - new Date(date).getFullYear();
+
+    const li = document.createElement("li");
+    li.textContent = `${name} – ${date} – ${age} Jahre`;
+    li.draggable = true;
+
+    document.getElementById("birthdayList").appendChild(li);
+
+    document.getElementById("bName").value = "";
+    document.getElementById("bDate").value = "";
+
+    saveAll();
+};
+
+/* -----------------------------------------------------
+   8. ALLES LÖSCHEN
+----------------------------------------------------- */
+document.getElementById("clearTodo").onclick = () => {
+    document.getElementById("todoList").innerHTML = "";
+    saveAll();
+};
+
+/* (für alle anderen Listen genauso) */
+["clearShop", "clearBirthday", "clearEvents"].forEach(id => {
+    document.getElementById(id).onclick = () => {
+        const target = id.replace("clear", "").toLowerCase() + "List";
+        document.getElementById(target).innerHTML = "";
+        saveAll();
+    };
+});
+
+/* -----------------------------------------------------
+   9. TEILEN
+----------------------------------------------------- */
+function shareList(id) {
+    const items = [...document.getElementById(id).children].map(li => "• " + li.textContent).join("\n");
+
+    navigator.share({
+        title: "Meine Liste",
+        text: items
+    });
+}
+
+document.getElementById("shareTodo").onclick = () => shareList("todoList");
+document.getElementById("shareShop").onclick = () => shareList("shopList");
+document.getElementById("shareBirthday").onclick = () => shareList("birthdayList");
+document.getElementById("shareEvents").onclick = () => shareList("eventList");
